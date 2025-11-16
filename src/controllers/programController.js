@@ -12,6 +12,7 @@ class ProgramController {
       const {
         // Filters
         country,
+        location,  // New location filter (state/province)
         city,
         programLevel,
         tags,
@@ -33,6 +34,7 @@ class ProgramController {
       
       // Handle array parameters (can be single value or array)
       if (country) filters.country = Array.isArray(country) ? country : [country];
+      if (location) filters.location = Array.isArray(location) ? location : [location];
       if (city) filters.city = Array.isArray(city) ? city : [city];
       if (programLevel) filters.programLevel = Array.isArray(programLevel) ? programLevel : [programLevel];
       if (tags) filters.tags = Array.isArray(tags) ? tags : [tags];
@@ -81,11 +83,11 @@ class ProgramController {
     }
   }
 
-  // Get available filter options
+  // Get available filter options (with hierarchy)
   async getFilterOptions(req, res, next) {
     try {
       // Optional: filter options based on country
-      const { country } = req.query;
+      const { country, location } = req.query;
       
       // Load cards
       const cards = country 
@@ -94,6 +96,16 @@ class ProgramController {
 
       // Extract filter options
       const options = filterEngine.extractFilterOptions(cards);
+
+      // If specific country requested, provide filtered location data
+      if (country && options.locationHierarchy[country]) {
+        options.locationsInCountry = Object.keys(options.locationHierarchy[country]).sort();
+        
+        // If specific location also requested, provide cities
+        if (location) {
+          options.citiesInLocation = filterEngine.getCitiesForLocation(cards, country, location);
+        }
+      }
 
       res.json({
         success: true,
@@ -109,7 +121,46 @@ class ProgramController {
     }
   }
 
-  // Get university details with its programs
+  // Get dynamic location options (for cascading dropdowns)
+  async getDynamicLocationOptions(req, res, next) {
+    try {
+      const { country, location } = req.query;
+      
+      if (!country) {
+        return res.status(400).json({
+          success: false,
+          error: 'Country parameter is required'
+        });
+      }
+
+      const cards = dataManager.getAllProgramCards([country]);
+      
+      let result = {};
+
+      if (!location) {
+        // Get all locations for the country
+        result.locations = filterEngine.getLocationsForCountry(cards, country);
+      } else {
+        // Get all cities for the country and location
+        result.cities = filterEngine.getCitiesForLocation(cards, country, location);
+      }
+
+      res.json({
+        success: true,
+        data: result,
+        meta: {
+          country,
+          location: location || null,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Get university details (without separate programs since they're included)
   async getUniversityDetails(req, res, next) {
     try {
       const { country, universityName } = req.params;
@@ -131,24 +182,10 @@ class ProgramController {
         });
       }
 
-      // Get programs for this university
-      const universityPrograms = dataManager.getUniversityPrograms(
-        decodedUniversityName,
-        decodedCountry
-      );
-
-      // Apply pagination to programs if requested
-      const { page = 1, itemsPerPage = 12 } = req.query;
-      const paginatedPrograms = sortingEngine.paginate(
-        universityPrograms,
-        parseInt(page),
-        parseInt(itemsPerPage)
-      );
-
+      // Return only university details (programs are already included in programs_list)
       res.json({
         success: true,
-        university: universityDetails,
-        programs: paginatedPrograms,
+        data: universityDetails,
         meta: {
           timestamp: new Date().toISOString()
         }

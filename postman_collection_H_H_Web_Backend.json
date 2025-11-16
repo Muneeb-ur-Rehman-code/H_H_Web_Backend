@@ -1,0 +1,165 @@
+{
+  "info": {
+    "_postman_id": "h_h_web_backend_examples",
+    "name": "H_H_Web_Backend - Example Requests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth - Login (POST /api/auth/login)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api","auth","login"]
+        }
+      }
+    },
+    {
+      "name": "Get Countries (GET /api/countries)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/countries",
+          "host": ["{{baseUrl}}"],
+          "path": ["api","countries"]
+        }
+      }
+    },
+    {
+      "name": "Get Universities (GET /api/universities)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/universities",
+          "host": ["{{baseUrl}}"],
+          "path": ["api","universities"]
+        }
+      }
+    },
+    {
+      "name": "Programs - Default (GET /api/programs)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/programs",
+          "host": ["{{baseUrl}}"],
+          "path": ["api","programs"]
+        }
+      }
+    },
+    {
+      "name": "Programs - Filters (Example 1: basic filters)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/programs?country=United%20States%20of%20America&city=Irvine&programLevel=Bachelor&tags=Information%20Technology&hasScholarship=true&minBudget=0&maxBudget=25000&search=computer&page=1&itemsPerPage=12&sortBy=tuition_low_high",
+          "host": ["{{baseUrl}}"],
+          "path": ["api","programs"],
+          "query": [
+            { "key": "country", "value": "United States of America" },
+            { "key": "city", "value": "Irvine" },
+            { "key": "programLevel", "value": "Bachelor" },
+            { "key": "tags", "value": "Information Technology" },
+            { "key": "hasScholarship", "value": "true" },
+            { "key": "minBudget", "value": "0" },
+            { "key": "maxBudget", "value": "25000" },
+            { "key": "search", "value": "computer" },
+            { "key": "page", "value": "1" },
+            { "key": "itemsPerPage", "value": "12" },
+            { "key": "sortBy", "value": "tuition_low_high" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Programs - Filters (Example 2: multiple countries & tags)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/programs?country=United%20States%20of%20America&country=Canada&tags=Computer%20Science&tags=Cybersecurity&programLevel=Master&minBudget=5000&maxBudget=30000&sortBy=total_cost_low_high&page=1&itemsPerPage=24",
+          "host": ["{{baseUrl}}"],
+          "path": ["api","programs"],
+          "query": [
+            { "key": "country", "value": "United States of America" },
+            { "key": "country", "value": "Canada" },
+            { "key": "tags", "value": "Computer Science" },
+            { "key": "tags", "value": "Cybersecurity" },
+            { "key": "programLevel", "value": "Master" },
+            { "key": "minBudget", "value": "5000" },
+            { "key": "maxBudget", "value": "30000" },
+            { "key": "sortBy", "value": "total_cost_low_high" },
+            { "key": "page", "value": "1" },
+            { "key": "itemsPerPage", "value": "24" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Programs - Filters (Example 3: scholarships + search + city)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/programs?hasScholarship=true&search=business&city=Boston&itemsPerPage=48&sortBy=best_match",
+          "host": ["{{baseUrl}}"],
+          "path": ["api","programs"],
+          "query": [
+            { "key": "hasScholarship", "value": "true" },
+            { "key": "search", "value": "business" },
+            { "key": "city", "value": "Boston" },
+            { "key": "itemsPerPage", "value": "48" },
+            { "key": "sortBy", "value": "best_match" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Programs - Filters (Example 4: budget only)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/programs?minBudget=10000&maxBudget=20000&sortBy=total_cost_high_low",
+          "host": ["{{baseUrl}}"],
+          "path": ["api","programs"],
+          "query": [
+            { "key": "minBudget", "value": "10000" },
+            { "key": "maxBudget", "value": "20000" },
+            { "key": "sortBy", "value": "total_cost_high_low" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "University Details (example - Cleveland State University)",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/programs/university/United%20States%20of%20America/Cleveland%20State%20University?page=1&itemsPerPage=12",
+          "host": ["{{baseUrl}}"],
+          "path": ["api","programs","university","United%20States%20of%20America","Cleveland%20State%20University"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "itemsPerPage", "value": "12" }
+          ]
+        }
+      }
+    }
+  ]
+}
