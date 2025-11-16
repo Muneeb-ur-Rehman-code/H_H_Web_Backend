@@ -4,9 +4,9 @@ const path = require('path');
 const cors = require('cors');
 const compression = require('compression');
 const morgan = require('morgan');
-const connectDB = require('./config/db');
-const Admin = require('./models/Admin');
-const errorHandler = require('./middleware/errorHandler');
+const connectDB = require('./src/config/db');
+const Admin = require('./src/models/Admin');
+const errorHandler = require('./src/middleware/errorHandler');
 
 const app = express();
 
@@ -58,9 +58,9 @@ autoCreateAdmin();
 // ==================== API Routes ====================
 
 // Existing routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/countries', require('./routes/country'));
-app.use('/api/universities', require('./routes/university'));
+app.use('/api/auth', require('./src/routes/auth'));
+app.use('/api/countries', require('./src/routes/country'));
+app.use('/api/universities', require('./src/routes/university'));
 
 // New program filtering routes
 app.use('/api/programs', require('./src/routes/programs'));
