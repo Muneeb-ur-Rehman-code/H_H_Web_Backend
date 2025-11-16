@@ -14,6 +14,27 @@ class FilterEngine {
     return parts[0]?.trim() || null;
   }
 
+  // Extract and clean tags from a tag string
+  extractTags(tagString) {
+    if (!tagString) return [];
+    
+    // Split by common delimiters (comma, semicolon, pipe)
+    const tags = tagString
+      .split(/[,;|]/)
+      .map(tag => tag.trim())
+      .filter(tag => tag.length > 0);
+    
+    // Filter out scholarship-related tags
+    const nonScholarshipTags = tags.filter(tag => {
+      const lowerTag = tag.toLowerCase();
+      return !lowerTag.includes('scholarship') && 
+             !lowerTag.includes('scholarships') &&
+             !lowerTag.includes('financial aid');
+    });
+    
+    return nonScholarshipTags;
+  }
+
   // Apply all filters to program cards
   applyFilters(cards, filters = {}) {
     let filteredCards = [...cards];
@@ -103,7 +124,9 @@ class FilterEngine {
     if (filters.hasScholarship === true || filters.hasScholarship === 'true') {
       filteredCards = filteredCards.filter((card) => {
         const cardTags = card.tags?.toLowerCase() || '';
-        const hasScholarship = cardTags.includes('scholarship');
+        const hasScholarship = cardTags.includes('scholarship') || 
+                              cardTags.includes('scholarships') ||
+                              cardTags.includes('financial aid');
         if (hasScholarship) {
           const currentIndex = filteredCards.indexOf(card);
           if (currentIndex !== -1) matchScores.set(currentIndex, matchScores.get(currentIndex) + 1);
@@ -143,7 +166,8 @@ class FilterEngine {
           card.university_name,
           card.program_name,
           card.location,
-          card.campus_city
+          card.campus_city,
+          card.tags
         ].join(' ').toLowerCase();
         
         const matches = searchIn.includes(searchTerm);
@@ -178,18 +202,20 @@ class FilterEngine {
     const options = {
       countries: [],
       locationHierarchy: {}, // Country -> Location -> Cities structure
-      tags: [],
+      tags: [], // This will contain all non-scholarship tags
       programLevels: [],
       budgetRanges: {
         min: Infinity,
         max: 0
-      }
+      },
+      hasScholarshipAvailable: false // Indicates if any programs have scholarships
     };
 
     // Use Sets for unique values
     const countrySet = new Set();
     const tagSet = new Set();
     const levelSet = new Set();
+    let scholarshipFound = false;
     
     // Build hierarchical location structure
     const hierarchy = {};
@@ -219,14 +245,18 @@ class FilterEngine {
         }
       }
 
-      // Tags (excluding scholarship-related tags for separate filter)
+      // Extract and process tags
       if (card.tags) {
-        const tags = card.tags.split(',').map(t => t.trim());
-        tags.forEach(tag => {
-          if (!tag.toLowerCase().includes('scholarship')) {
-            tagSet.add(tag);
-          }
-        });
+        const extractedTags = this.extractTags(card.tags);
+        extractedTags.forEach(tag => tagSet.add(tag));
+        
+        // Check if scholarship tags exist
+        const lowerTags = card.tags.toLowerCase();
+        if (lowerTags.includes('scholarship') || 
+            lowerTags.includes('scholarships') ||
+            lowerTags.includes('financial aid')) {
+          scholarshipFound = true;
+        }
       }
 
       // Program levels
@@ -255,8 +285,9 @@ class FilterEngine {
     // Convert sets to sorted arrays
     options.countries = Array.from(countrySet).sort();
     options.locationHierarchy = hierarchy;
-    options.tags = Array.from(tagSet).sort();
+    options.tags = Array.from(tagSet).sort(); // All non-scholarship tags
     options.programLevels = Array.from(levelSet).sort();
+    options.hasScholarshipAvailable = scholarshipFound;
 
     // Round budget ranges
     options.budgetRanges.min = Math.floor(options.budgetRanges.min);
@@ -276,7 +307,34 @@ class FilterEngine {
     options.allLocations = [...new Set(options.allLocations)].sort();
     options.allCities = [...new Set(options.allCities)].sort();
 
+    // Add tag statistics for frontend
+    options.tagStatistics = {
+      totalUniqueTags: options.tags.length,
+      hasScholarshipPrograms: scholarshipFound,
+      popularTags: this.getPopularTags(cards, 10) // Top 10 most common tags
+    };
+
     return options;
+  }
+
+  // Get most popular tags (helper function)
+  getPopularTags(cards, limit = 10) {
+    const tagCount = new Map();
+    
+    cards.forEach(card => {
+      if (card.tags) {
+        const extractedTags = this.extractTags(card.tags);
+        extractedTags.forEach(tag => {
+          tagCount.set(tag, (tagCount.get(tag) || 0) + 1);
+        });
+      }
+    });
+
+    // Sort by count and return top tags
+    return Array.from(tagCount.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, limit)
+      .map(([tag, count]) => ({ tag, count }));
   }
 
   // Get locations for specific country
