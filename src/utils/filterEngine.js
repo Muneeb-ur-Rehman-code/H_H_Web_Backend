@@ -45,43 +45,63 @@ class FilterEngine {
       matchScores.set(index, 0);
     });
 
-    // Country filter (Level 1)
-    if (filters.country && filters.country.length > 0) {
-      filteredCards = filteredCards.filter((card, index) => {
-        const matches = filters.country.includes(card.country);
-        if (matches) matchScores.set(index, matchScores.get(index) + 3); // Highest weight for country
-        return matches;
+    // LOCATION HIERARCHY FILTERS (ADDITIVE/OR LOGIC)
+    // These filters are additive - each adds programs to the result set
+    const hasLocationFilters = 
+      (filters.country && filters.country.length > 0) ||
+      (filters.location && filters.location.length > 0) ||
+      (filters.city && filters.city.length > 0);
+
+    if (hasLocationFilters) {
+      filteredCards = filteredCards.filter((card) => {
+        let includeCard = false;
+        let locationScore = 0;
+
+        // Check Country - if card's country matches any selected country
+        if (filters.country && filters.country.length > 0) {
+          if (filters.country.includes(card.country)) {
+            includeCard = true;
+            locationScore += 3;
+          }
+        }
+
+        // Check Location - if card's location matches any selected location
+        // This is independent of country selection
+        if (filters.location && filters.location.length > 0) {
+          const cardLocation = this.extractLocation(card.location);
+          if (cardLocation && filters.location.some(loc => 
+            cardLocation.toLowerCase().includes(loc.toLowerCase())
+          )) {
+            includeCard = true;
+            locationScore += 2;
+          }
+        }
+
+        // Check City - if card's city matches any selected city
+        // This is independent of country and location selection
+        if (filters.city && filters.city.length > 0) {
+          if (filters.city.some(city => 
+            card.campus_city?.toLowerCase().includes(city.toLowerCase())
+          )) {
+            includeCard = true;
+            locationScore += 1.5;
+          }
+        }
+
+        // Update match score if card is included
+        if (includeCard) {
+          const currentIndex = filteredCards.indexOf(card);
+          if (currentIndex !== -1) {
+            matchScores.set(currentIndex, (matchScores.get(currentIndex) || 0) + locationScore);
+          }
+        }
+
+        return includeCard;
       });
     }
 
-    // Location filter (Level 2 - State/Province)
-    if (filters.location && filters.location.length > 0) {
-      filteredCards = filteredCards.filter((card) => {
-        const cardLocation = this.extractLocation(card.location);
-        const matches = cardLocation && filters.location.some(loc => 
-          cardLocation.toLowerCase().includes(loc.toLowerCase())
-        );
-        if (matches) {
-          const currentIndex = filteredCards.indexOf(card);
-          if (currentIndex !== -1) matchScores.set(currentIndex, matchScores.get(currentIndex) + 2);
-        }
-        return matches;
-      });
-    }
-
-    // City filter (Level 3)
-    if (filters.city && filters.city.length > 0) {
-      filteredCards = filteredCards.filter((card) => {
-        const matches = filters.city.some(city => 
-          card.campus_city?.toLowerCase().includes(city.toLowerCase())
-        );
-        if (matches) {
-          const currentIndex = filteredCards.indexOf(card);
-          if (currentIndex !== -1) matchScores.set(currentIndex, matchScores.get(currentIndex) + 1.5);
-        }
-        return matches;
-      });
-    }
+    // OTHER FILTERS (RESTRICTIVE/AND LOGIC)
+    // These filters are applied on top of location-filtered results
 
     // Program level filter (Bachelor or Master)
     if (filters.programLevel && filters.programLevel.length > 0) {
@@ -105,7 +125,7 @@ class FilterEngine {
       });
     }
 
-    // Tags filter (partial matching allowed, multiple tags)
+    // Tags filter (partial matching allowed, multiple tags with OR logic within tags)
     if (filters.tags && filters.tags.length > 0) {
       filteredCards = filteredCards.filter((card) => {
         const cardTags = card.tags?.toLowerCase() || '';
